@@ -147,6 +147,9 @@ class ProfileView(View):
         phone = data.get('phone')
         address = data.get('address')
 
+        if not phone and not address:
+            return JsonResponse({'error': 'phone ya address dono mein se kuch toh do'}, status=400)
+
         with connection.cursor() as cursor:
             cursor.execute("""
                 UPDATE users SET phone = %s, address = %s WHERE id = %s
@@ -154,7 +157,22 @@ class ProfileView(View):
 
         return JsonResponse({'message': 'Profile updated successfully'})
 
+    def delete(self, request):
+        user_id = verify_token(request)
+        if not user_id:
+            return JsonResponse({'error': 'Invalid or expired token'}, status=401)
 
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id FROM users WHERE id = %s", [user_id])
+            existing = cursor.fetchone()
+
+        if not existing:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM users WHERE id = %s", [user_id])
+
+        return JsonResponse({'message': 'Account deleted successfully'})
 # GET ALL USERS
 class UserListView(View):
     def get(self, request):
